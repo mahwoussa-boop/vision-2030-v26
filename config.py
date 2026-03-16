@@ -1,6 +1,7 @@
 """
-config.py - الإعدادات المركزية v19.0
+config.py - الإعدادات المركزية v26.0
 المفاتيح محمية عبر Streamlit Secrets
+نظام تدوير المفاتيح الذكي (Key Rotation) لضمان استمرارية العمل
 """
 import json as _json
 import os as _os
@@ -76,7 +77,7 @@ def _parse_gemini_keys():
 
     # ─── المحاولة 3: مفاتيح منفصلة ───
     for n in ["GEMINI_KEY_1","GEMINI_KEY_2","GEMINI_KEY_3",
-              "GEMINI_KEY_4","GEMINI_KEY_5"]:
+              "GEMINI_KEY_4","GEMINI_KEY_5","GEMINI_KEY_6","GEMINI_KEY_7","GEMINI_KEY_8","GEMINI_KEY_9","GEMINI_KEY_10"]:
         k = _s(n, "")
         if k and k not in keys:
             keys.append(k)
@@ -86,14 +87,93 @@ def _parse_gemini_keys():
     return keys
 
 
+def _parse_openrouter_keys():
+    """
+    يجمع مفاتيح OpenRouter من أي صيغة
+    """
+    keys = []
+    raw = _s("OPENROUTER_API_KEYS", "")
+    
+    if isinstance(raw, list):
+        keys = [k for k in raw if k and isinstance(k, str)]
+    elif raw and isinstance(raw, str):
+        raw = raw.strip()
+        if raw.startswith('['):
+            try:
+                parsed = _json.loads(raw)
+                if isinstance(parsed, list):
+                    keys = [k for k in parsed if k]
+            except Exception:
+                clean = raw.strip("[]").replace('"','').replace("'",'')  
+                keys = [k.strip() for k in clean.split(',') if k.strip()]
+        elif raw:
+            keys = [raw]
+    
+    single = _s("OPENROUTER_API_KEY", "")
+    if single and single not in keys:
+        keys.append(single)
+    
+    for n in ["OPENROUTER_KEY_1","OPENROUTER_KEY_2","OPENROUTER_KEY_3"]:
+        k = _s(n, "")
+        if k and k not in keys:
+            keys.append(k)
+    
+    keys = [k.strip() for k in keys if k and len(k) > 20]
+    return keys
+
+
+def _parse_cohere_keys():
+    """
+    يجمع مفاتيح Cohere من أي صيغة
+    """
+    keys = []
+    raw = _s("COHERE_API_KEYS", "")
+    
+    if isinstance(raw, list):
+        keys = [k for k in raw if k and isinstance(k, str)]
+    elif raw and isinstance(raw, str):
+        raw = raw.strip()
+        if raw.startswith('['):
+            try:
+                parsed = _json.loads(raw)
+                if isinstance(parsed, list):
+                    keys = [k for k in parsed if k]
+            except Exception:
+                clean = raw.strip("[]").replace('"','').replace("'",'')  
+                keys = [k.strip() for k in clean.split(',') if k.strip()]
+        elif raw:
+            keys = [raw]
+    
+    single = _s("COHERE_API_KEY", "")
+    if single and single not in keys:
+        keys.append(single)
+    
+    for n in ["COHERE_KEY_1","COHERE_KEY_2","COHERE_KEY_3"]:
+        k = _s(n, "")
+        if k and k not in keys:
+            keys.append(k)
+    
+    keys = [k.strip() for k in keys if k and len(k) > 20]
+    return keys
+
+
 # ══════════════════════════════════════════════
 #  المفاتيح الفعلية
 # ══════════════════════════════════════════════
 GEMINI_API_KEYS    = _parse_gemini_keys()
 GEMINI_API_KEY     = GEMINI_API_KEYS[0] if GEMINI_API_KEYS else ""
-OPENROUTER_API_KEY = _s("OPENROUTER_API_KEY") or _s("OPENROUTER_KEY") or ""
-COHERE_API_KEY     = _s("COHERE_API_KEY") or ""
+OPENROUTER_API_KEYS = _parse_openrouter_keys()
+OPENROUTER_API_KEY = OPENROUTER_API_KEYS[0] if OPENROUTER_API_KEYS else ""
+COHERE_API_KEYS    = _parse_cohere_keys()
+COHERE_API_KEY     = COHERE_API_KEYS[0] if COHERE_API_KEYS else ""
 EXTRA_API_KEY      = _s("EXTRA_API_KEY")
+
+# ══════════════════════════════════════════════════
+#  إعدادات نظام تدوير المفاتيح (Key Rotation)
+# ══════════════════════════════════════════════════
+KEY_ROTATION_ENABLED = True  # تفعيل نظام تدوير المفاتيح
+KEY_ROTATION_ON_429 = True   # تبديل المفتاح تلقائياً عند خطأ 429 (Rate Limit)
+KEY_ROTATION_STRATEGY = "round_robin"  # استراتيجية: round_robin أو random
 
 # ══════════════════════════════════════════════
 #  Make Webhooks
