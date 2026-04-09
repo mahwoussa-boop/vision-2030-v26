@@ -48,6 +48,8 @@ from engines.automation import (AutomationEngine, ScheduledSearchManager,
                                  log_automation_decision, get_automation_log,
                                  get_automation_stats)
 from utils.db_manager import check_strict_duplicate
+from utils.data_helpers import (safe_results_for_json, restore_results_from_json,
+                                 format_missing_for_salla)
 from utils.helpers import (apply_filters, get_filter_options, export_to_excel,
                             export_multiple_sheets, parse_pasted_text,
                             safe_float, format_price, format_diff)
@@ -112,44 +114,9 @@ def _split_results(df):
     }
 
 
-def _safe_results_for_json(results_list):
-    """تحويل النتائج لصيغة آمنة للحفظ في JSON/SQLite — يحول القوائم المتداخلة"""
-    safe = []
-    for r in results_list:
-        row = {}
-        for k, v in (r.items() if isinstance(r, dict) else {}):
-            if isinstance(v, list):
-                # تحويل قوائم المنافسين لنص JSON
-                try:
-                    import json as _j
-                    row[k] = _j.dumps(v, ensure_ascii=False, default=str)
-                except Exception:
-                    row[k] = str(v)
-            elif pd.isna(v) if isinstance(v, float) else False:
-                row[k] = 0
-            else:
-                row[k] = v
-        safe.append(row)
-    return safe
-
-
-def _restore_results_from_json(results_list):
-    """استعادة النتائج من JSON — يحول نصوص القوائم لقوائم فعلية"""
-    import json as _j
-    restored = []
-    for r in results_list:
-        row = dict(r) if isinstance(r, dict) else {}
-        for k in ["جميع_المنافسين", "جميع المنافسين"]:
-            v = row.get(k)
-            if isinstance(v, str):
-                try:
-                    row[k] = _j.loads(v)
-                except Exception:
-                    row[k] = []
-            elif v is None:
-                row[k] = []
-        restored.append(row)
-    return restored
+# تم نقل دوال معالجة JSON إلى utils/data_helpers.py لضمان التكامل v26.0
+_safe_results_for_json = safe_results_for_json
+_restore_results_from_json = restore_results_from_json
 
 
 # ── تحميل تلقائي للنتائج المحفوظة عند فتح التطبيق ──
